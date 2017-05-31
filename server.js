@@ -79,6 +79,7 @@ _postNotification = (msg) => {
   let newNoti = {
     type: "incomingNotification",
     data: {
+      id: uuid.va(),
       prevName: msg.data.prevName,
       newName: msg.data.newName
     }
