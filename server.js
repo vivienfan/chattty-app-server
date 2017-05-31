@@ -23,17 +23,48 @@ wss.on('connection', (ws) => {
   console.log('Client connected');
 
   ws.on('message', function incoming(message) {
+    console.log(message);
     let msg = JSON.parse(message);
-    console.log('received: %s', `User ${msg.username} said ${msg.content}`);
-    msg.id = uuid.v1();
-    // Broadcast to everyone.
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(msg));
-      }
-    });
+    switch(msg.type) {
+      case "postNotification":
+        let newNoti = {
+          type: "incomingNotification",
+          data: {
+            prevName: msg.data.prevName,
+            newName: msg.data.newName
+          }
+        }
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(newNoti));
+          }
+        })
+        break;
+      case "postMessage":
+        let newMsg = {
+          type: "incomingMessage",
+          data: {
+            id: uuid.v1(),
+            username: msg.data.username,
+            content: msg.data.content
+          }
+        };
+        // Broadcast to everyone.
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(newMsg));
+          }
+        });
+        break;
+      default:
+        console.error("Unknown event type " + msg.type);
+    }
   });
 
   // Set up a callback for when a client closes the socket. This usually means they closed their browser.
   ws.on('close', () => console.log('Client disconnected'));
 });
+
+// _broadcast (msg) => {
+//   wss.clients.forEach(func)
+// }
