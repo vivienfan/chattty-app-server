@@ -26,12 +26,9 @@ wss.on('connection', (ws) => {
     let msg = JSON.parse(message);
     console.log('received: %s', `User ${msg.username} said ${msg.content}`);
     msg.id = uuid.v1();
-    console.log(msg.id);
-    console.log()
     // Broadcast to everyone.
     wss.clients.forEach(function each(client) {
       if (client.readyState === WebSocket.OPEN) {
-        console.log(JSON.stringify(msg));
         client.send(JSON.stringify(msg));
       }
     });
