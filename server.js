@@ -16,45 +16,24 @@ const server = express()
 // Create the WebSockets server
 const wss = new SocketServer({ server });
 
+let counter = 0;
+
 // Set up a callback that will run when a client connects to the server
 // When a client connects they are assigned a socket, represented by
 // the ws parameter in the callback.
 wss.on('connection', (ws) => {
   console.log('Client connected');
+  _increamentUser();
 
   ws.on('message', function incoming(message) {
-    console.log(message);
+    console.log('Receive:', message);
     let msg = JSON.parse(message);
     switch(msg.type) {
       case "postNotification":
-        let newNoti = {
-          type: "incomingNotification",
-          data: {
-            prevName: msg.data.prevName,
-            newName: msg.data.newName
-          }
-        }
-        wss.clients.forEach(function each(client) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(newNoti));
-          }
-        })
+        _postNotification(msg);
         break;
       case "postMessage":
-        let newMsg = {
-          type: "incomingMessage",
-          data: {
-            id: uuid.v1(),
-            username: msg.data.username,
-            content: msg.data.content
-          }
-        };
-        // Broadcast to everyone.
-        wss.clients.forEach(function each(client) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(newMsg));
-          }
-        });
+        _postMessage(msg);
         break;
       default:
         console.error("Unknown event type " + msg.type);
@@ -62,9 +41,59 @@ wss.on('connection', (ws) => {
   });
 
   // Set up a callback for when a client closes the socket. This usually means they closed their browser.
-  ws.on('close', () => console.log('Client disconnected'));
+  ws.on('close', () => {
+    console.log('Client disconnected');
+    _decreamentUser();
+  });
 });
 
-// _broadcast (msg) => {
-//   wss.clients.forEach(func)
-// }
+// Broadcast to everyone.
+_broadcase = (msg) => {
+  console.log('Broadcast:', msg);
+  wss.clients.forEach(function each(client) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(msg);
+    }
+  });
+}
+
+_increamentUser = () => {
+  counter++;
+  let newCount = {
+    type: "incomingCounter",
+    data: counter
+  }
+  _broadcase(JSON.stringify(newCount));
+}
+
+_decreamentUser = () => {
+  counter--;
+  let newCount = {
+    type: "incomingCounter",
+    data: counter
+  }
+  _broadcase(JSON.stringify(newCount));
+}
+
+_postNotification = (msg) => {
+  let newNoti = {
+    type: "incomingNotification",
+    data: {
+      prevName: msg.data.prevName,
+      newName: msg.data.newName
+    }
+  }
+  _broadcase(JSON.stringify(newNoti));
+}
+
+_postMessage = (msg) => {
+  let newMsg = {
+    type: "incomingMessage",
+    data: {
+      id: uuid.v1(),
+      username: msg.data.username,
+      content: msg.data.content
+    }
+  };
+  _broadcase(JSON.stringify(newMsg));
+}
